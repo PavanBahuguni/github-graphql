@@ -3,29 +3,50 @@ const {
     GraphQLObjectType,
     GraphQLString,
     GraphQLNonNull,
-    GraphQLInt
+    GraphQLInt,
+    GraphQLBoolean
 } = require('graphql');
+const axios = require('axios');
 
+const userInfo = new GraphQLObjectType({
+    name: 'userInfo',
+    description: 'Github user information',
+    fields: () => ({
+        login: {type: GraphQLString},
+        id: {type: GraphQLInt},
+        avatar_url: {type: GraphQLString},
+        state_admin: {type: GraphQLBoolean},
+        public_repos: {type: GraphQLInt},
+        followers: {type: GraphQLInt},
+        following: { type: GraphQLInt },
+        following_url: {
+            type: GraphQLString,
+            resolve: (obj) => {
+                const brackIndex = obj.following_url.indexOf('{');
+                return obj.following_url.slice(0, brackIndex);
+            }
+        }
+    })
+})
 const query = new GraphQLObjectType({
     name: 'Query',
     description: 'Testing graphql',
     fields: () => ({
-        hello: {
-            type: GraphQLString,
-            description: 'Accepts a name so you can be nice ans say hi',
+        user: {
+            type: userInfo,
+            description: 'Github user API data with enhanced and additional data',
             args: {
-                name: {type: GraphQLString}
+                username: {
+                    type: new GraphQLNonNull(GraphQLString),
+                    description: `The GitHub user login you want information on`,
+                }
             },
-            resolve: (_, args) => {
-                return `Hello, ${args.name}`
-            }
-        },
-        luckyNumber: {
-            type: GraphQLInt,
-            description: 'A lucky number',
-            resolve: () => {
-                console.log('number');
-                return 88;
+            resolve: (_, {username}) => {
+                const url = `https://api.github.com/users/${username}`
+                return axios.get(url)
+                    .then((response) => {
+                        return response.data;
+                    })
             }
         }
     })
