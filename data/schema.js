@@ -4,9 +4,20 @@ const {
     GraphQLString,
     GraphQLNonNull,
     GraphQLInt,
-    GraphQLBoolean
+    GraphQLBoolean,
+    GraphQLList
 } = require('graphql');
 const axios = require('axios');
+
+const followingUser = new GraphQLObjectType({
+    name: 'followingUser',
+    description: `Github user's, following user's info`,
+    fields: () => ({
+        login: { type: GraphQLString },
+        id: { type: GraphQLInt },
+        avatar_url: { type: GraphQLString },
+    })
+});
 
 const userInfo = new GraphQLObjectType({
     name: 'userInfo',
@@ -19,11 +30,14 @@ const userInfo = new GraphQLObjectType({
         public_repos: {type: GraphQLInt},
         followers: {type: GraphQLInt},
         following: { type: GraphQLInt },
-        following_url: {
-            type: GraphQLString,
+        users_following: {
+            type: new GraphQLList(followingUser),
             resolve: (obj) => {
                 const brackIndex = obj.following_url.indexOf('{');
-                return obj.following_url.slice(0, brackIndex);
+                return axios.get(obj.following_url.slice(0, brackIndex))
+                    .then(res => {
+                        return res.data;
+                    })
             }
         }
     })
